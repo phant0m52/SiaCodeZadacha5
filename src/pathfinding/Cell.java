@@ -6,7 +6,7 @@ public class Cell {
     private final int row;
     private final int col;
     private CellType type;
-    private int teleportId = -1; // -1 = нет телепорта
+    private int teleportId = -1; 
 
     public Cell(int row, int col, CellType type) {
         this.row = row;
