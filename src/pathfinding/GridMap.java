@@ -50,18 +50,16 @@ public class GridMap {
         return null;
     }
 
-    /**
-     * Устанавливаем тип клетки с учётом того, что START и GOAL должны быть единственными.
-     */
+  
     public void setCellType(int row, int col, CellType type, int teleportId) {
         Cell cell = getCell(row, col);
         if (cell == null) return;
 
-        // Если ставим START — убираем старый START
+       
         if (type == CellType.START) {
             clearType(CellType.START);
         }
-        // Если ставим GOAL — убираем старый GOAL
+       
         if (type == CellType.GOAL) {
             clearType(CellType.GOAL);
         }
@@ -85,10 +83,7 @@ public class GridMap {
         }
     }
 
-    /**
-     * Собираем пары телепортов по teleportId.
-     * Предполагаем, что для каждого id есть максимум один вход и один выход.
-     */
+   
     public Map<Integer, TeleportLink> buildTeleportLinks() {
         Map<Integer, Cell> entrances = new HashMap<>();
         Map<Integer, Cell> exits = new HashMap<>();
