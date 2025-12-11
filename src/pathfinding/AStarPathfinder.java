@@ -9,7 +9,7 @@ public class AStarPathfinder {
         Cell goal = map.getGoal();
 
         if (start == null || goal == null) {
-            return null; // нет старта или цели
+            return null; 
         }
 
         Map<Integer, TeleportLink> teleports = map.buildTeleportLinks();
@@ -54,7 +54,7 @@ public class AStarPathfinder {
                     if (!open.contains(neighborNode)) {
                         open.add(neighborNode);
                     } else {
-                        // обновление позиции в очереди: проще удалить и добавить заново
+                        
                         open.remove(neighborNode);
                         open.add(neighborNode);
                     }
@@ -62,25 +62,25 @@ public class AStarPathfinder {
             }
         }
 
-        return null; // путь не найден
+        return null;
     }
 
     private double heuristic(Cell a, Cell b) {
         int dx = Math.abs(a.getRow() - b.getRow());
         int dy = Math.abs(a.getCol() - b.getCol());
-        // Манхэттен
+        // ДљЕ•Г­Е‘ГЅЕ€Е€ДєГ­
         return dx + dy;
     }
 
     private double movementCost(Cell from, Cell to, Map<Integer, TeleportLink> teleports) {
-        // Если ход через телепорт — можно сделать меньше стоимость, например 0 или 1.
+       
         if (from.getType() == CellType.TELEPORT_ENTRANCE &&
                 to.getType() == CellType.TELEPORT_EXIT &&
                 from.getTeleportId() >= 0 &&
                 from.getTeleportId() == to.getTeleportId()) {
-            return 0; // мгновенный телепорт
+            return 0; 
         }
-        return 1; // обычный шаг
+        return 1; 
     }
 
     private List<Cell> getNeighbors(GridMap map, Cell cell, Map<Integer, TeleportLink> teleports) {
@@ -101,7 +101,7 @@ public class AStarPathfinder {
             }
         }
 
-        // Добавляем переход телепорта, если есть
+       
         if (cell.getType() == CellType.TELEPORT_ENTRANCE && cell.getTeleportId() >= 0) {
             TeleportLink link = teleports.get(cell.getTeleportId());
             if (link != null) {
