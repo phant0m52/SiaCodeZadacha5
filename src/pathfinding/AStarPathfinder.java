@@ -7,117 +7,104 @@ public class AStarPathfinder {
     public List<Cell> findPath(GridMap map) {
         Cell start = map.getStart();
         Cell goal = map.getGoal();
-
-        if (start == null || goal == null) {
-            return null; 
-        }
+        if (start == null || goal == null) return null;
 
         Map<Integer, TeleportLink> teleports = map.buildTeleportLinks();
 
         PriorityQueue<Node> open = new PriorityQueue<>();
-        Map<Cell, Node> nodeByCell = new HashMap<>();
+        Map<Cell, Node> nodes = new HashMap<>();
         Set<Cell> closed = new HashSet<>();
 
         Node startNode = new Node(start);
         startNode.g = 0;
         startNode.h = heuristic(start, goal);
+
         open.add(startNode);
-        nodeByCell.put(start, startNode);
+        nodes.put(start, startNode);
 
         while (!open.isEmpty()) {
             Node current = open.poll();
-
-            if (current.cell.equals(goal)) {
-                return reconstructPath(current);
-            }
+            if (current.cell.equals(goal))
+                return reconstruct(current);
 
             closed.add(current.cell);
 
-            for (Cell neighbor : getNeighbors(map, current.cell, teleports)) {
-                if (closed.contains(neighbor)) continue;
-                if (neighbor.getType() == CellType.OBSTACLE) continue;
+            for (Cell n : getNeighbors(map, current.cell, teleports)) {
+                if (n.getType() == CellType.OBSTACLE || closed.contains(n))
+                    continue;
 
-                Node neighborNode = nodeByCell.get(neighbor);
-                if (neighborNode == null) {
-                    neighborNode = new Node(neighbor);
-                    nodeByCell.put(neighbor, neighborNode);
-                }
+                Node node = nodes.computeIfAbsent(n, Node::new);
+                double gNew = current.g + cost(current.cell, n, teleports);
 
-                double moveCost = movementCost(current.cell, neighbor, teleports);
-                double tentativeG = current.g + moveCost;
-
-                if (tentativeG < neighborNode.g) {
-                    neighborNode.parent = current;
-                    neighborNode.g = tentativeG;
-                    neighborNode.h = heuristic(neighbor, goal);
-
-                    if (!open.contains(neighborNode)) {
-                        open.add(neighborNode);
-                    } else {
-                        
-                        open.remove(neighborNode);
-                        open.add(neighborNode);
-                    }
+                if (gNew < node.g) {
+                    node.parent = current;
+                    node.g = gNew;
+                    node.h = heuristic(n, goal);
+                    open.remove(node);
+                    open.add(node);
                 }
             }
         }
-
         return null;
     }
 
     private double heuristic(Cell a, Cell b) {
-        int dx = Math.abs(a.getRow() - b.getRow());
-        int dy = Math.abs(a.getCol() - b.getCol());
-        // Ěŕíőýňňĺí
-        return dx + dy;
+        return Math.max(
+                Math.abs(a.getRow() - b.getRow()),
+                Math.abs(a.getCol() - b.getCol())
+        );
     }
 
-    private double movementCost(Cell from, Cell to, Map<Integer, TeleportLink> teleports) {
-       
-        if (from.getType() == CellType.TELEPORT_ENTRANCE &&
-                to.getType() == CellType.TELEPORT_EXIT &&
-                from.getTeleportId() >= 0 &&
-                from.getTeleportId() == to.getTeleportId()) {
-            return 0; 
-        }
-        return 1; 
+    private double cost(Cell a, Cell b, Map<Integer, TeleportLink> t) {
+        if (a.getType() == CellType.TELEPORT_ENTRANCE &&
+                b.getType() == CellType.TELEPORT_EXIT &&
+                a.getTeleportId() == b.getTeleportId())
+            return 0;
+
+        int dr = Math.abs(a.getRow() - b.getRow());
+        int dc = Math.abs(a.getCol() - b.getCol());
+        return (dr == 1 && dc == 1) ? Math.sqrt(2) : 1;
     }
 
-    private List<Cell> getNeighbors(GridMap map, Cell cell, Map<Integer, TeleportLink> teleports) {
-        List<Cell> neighbors = new ArrayList<>();
-
-        int r = cell.getRow();
-        int c = cell.getCol();
-
-        int[][] dirs = {
-                {1, 0}, {-1, 0},
-                {0, 1}, {0, -1}
+    private List<Cell> getNeighbors(GridMap map, Cell c, Map<Integer, TeleportLink> t) {
+        List<Cell> res = new ArrayList<>();
+        int[][] d = {
+                {1,0},{-1,0},{0,1},{0,-1},
+                {1,1},{1,-1},{-1,1},{-1,-1}
         };
 
-        for (int[] d : dirs) {
-            Cell n = map.getCell(r + d[0], c + d[1]);
-            if (n != null) {
-                neighbors.add(n);
+        for (int[] x : d) {
+            int r = c.getRow() + x[0];
+            int col = c.getCol() + x[1];
+            Cell n = map.getCell(r, col);
+            if (n == null) continue;
+
+            // запрет срезания углов
+            if (Math.abs(x[0]) == 1 && Math.abs(x[1]) == 1) {
+                Cell a = map.getCell(c.getRow(), col);
+                Cell b = map.getCell(r, c.getCol());
+                if (a == null || b == null) continue;
+                if (a.getType() == CellType.OBSTACLE ||
+                        b.getType() == CellType.OBSTACLE)
+                    continue;
             }
+
+            res.add(n);
         }
 
-       
-        if (cell.getType() == CellType.TELEPORT_ENTRANCE && cell.getTeleportId() >= 0) {
-            TeleportLink link = teleports.get(cell.getTeleportId());
-            if (link != null) {
-                neighbors.add(link.getExit());
-            }
+        if (c.getType() == CellType.TELEPORT_ENTRANCE) {
+            TeleportLink link = t.get(c.getTeleportId());
+            if (link != null) res.add(link.getExit());
         }
 
-        return neighbors;
+        return res;
     }
 
-    private List<Cell> reconstructPath(Node goalNode) {
+    private List<Cell> reconstruct(Node n) {
         List<Cell> path = new ArrayList<>();
-        Node current = goalNode;
-        while (current != null) {
-            path.add(current.cell);
-            current = current.parent;
+        while (n != null) {
+            path.add(n.cell);
+            n = n.parent;
         }
         Collections.reverse(path);
         return path;
